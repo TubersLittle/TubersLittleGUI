@@ -1,0 +1,963 @@
+-- by -Tubers93- (FAST GLITCH MODE)
+-- Чёрно-белый квадрат 500x450. Функции РАБОЧИЕ.
+-- ГЛЮКИ: ОЧЕНЬ БЫСТРЫЕ, ПОСТОЯННЫЕ, ХАОТИЧНЫЕ
+
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local ui = game:GetService("UserInputService")
+local rs = game:GetService("RunService")
+local lighting = game:GetService("Lighting")
+local tween = game:GetService("TweenService")
+local vInput = game:GetService("VirtualInputManager")
+
+-- ========== СОХРАНЕНИЕ НАСТРОЕК ==========
+if not getgenv().Tubers93_settings then
+    getgenv().Tubers93_settings = {
+        flying = false,
+        noclip = false,
+        infJump = false,
+        god = false,
+        espOn = false,
+        bright = false,
+        aimbotEnabled = false,
+        infiniteAmmo = false,
+        freecamActive = false,
+        teleportLoopActive = false,
+        tpEnabled = false,
+        flySpeed = 70,
+        ws = 16,
+        jp = 50,
+        fov = 70
+    }
+end
+local settings = getgenv().Tubers93_settings
+
+local function saveSettings()
+    getgenv().Tubers93_settings = settings
+end
+
+if not getgenv().Tubers93_position then getgenv().Tubers93_position = nil end
+
+-- ========== БЫСТРЫЕ ГЛЮЧНЫЕ УВЕДОМЛЕНИЯ ==========
+for i = 1, 5 do
+    task.spawn(function()
+        wait(i * 0.1)
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "b" .. string.rep("y", math.random(1,3)) .. " -T" .. string.rep("#", math.random(1,2)) .. "b" .. string.rep("$", math.random(1,2)) .. "rs93-",
+            Text = "акт" .. string.rep("!", math.random(1,4)) .. "вир" .. string.rep("@", math.random(1,3)) .. "ван",
+            Duration = 0.5
+        })
+    end)
+end
+
+-- ========== ВСЕ ФУНКЦИИ (РАБОЧИЕ, БЕЗ ИЗМЕНЕНИЙ) ==========
+-- FLY
+local flying = settings.flying
+local flySpeed = settings.flySpeed
+local bv, bg, root, hum
+local flyKeys = {W=false,A=false,S=false,D=false,Space=false,Shift=false}
+ui.InputBegan:Connect(function(i,g) if g then return end if i.UserInputType==Enum.UserInputType.Keyboard then flyKeys[i.KeyCode.Name]=true end end)
+ui.InputEnded:Connect(function(i,g) if i.UserInputType==Enum.UserInputType.Keyboard then flyKeys[i.KeyCode.Name]=false end end)
+
+local function stopFly()
+    if bv then bv:Destroy() end
+    if bg then bg:Destroy() end
+    if hum then hum.PlatformStand = false end
+    flying = false
+    settings.flying = false
+    saveSettings()
+end
+
+local function startFly()
+    if flying then stopFly() end
+    local c = player.Character
+    if not c then return end
+    hum = c:FindFirstChildOfClass("Humanoid")
+    root = c:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    flying = true
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1,1,1)*400000
+    bv.Parent = root
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1,1,1)*400000
+    bg.Parent = root
+    hum.PlatformStand = true
+    settings.flying = true
+    saveSettings()
+end
+
+rs.RenderStepped:Connect(function()
+    if flying and root then
+        local cam = workspace.CurrentCamera
+        local move = Vector3.new()
+        if flyKeys.W then move = move + cam.CFrame.LookVector end
+        if flyKeys.S then move = move - cam.CFrame.LookVector end
+        if flyKeys.A then move = move - cam.CFrame.RightVector end
+        if flyKeys.D then move = move + cam.CFrame.RightVector end
+        if flyKeys.Space then move = move + Vector3.new(0,1,0) end
+        if flyKeys.Shift then move = move - Vector3.new(0,1,0) end
+        if move.Magnitude > 0 then move = move.Unit end
+        bv.Velocity = move * flySpeed
+        bg.CFrame = cam.CFrame
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    if flying then task.wait(0.3); startFly() end
+end)
+
+-- INFINITE JUMP
+local infiniteJump = settings.infJump
+ui.JumpRequest:Connect(function()
+    if infiniteJump and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- SPEED HACK
+local speedHackActive = false
+local function applySpeedHack()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = speedHackActive and 70 or settings.ws end
+    end
+end
+
+-- JUMP POWER BOOST
+local jumpPowerBoost = false
+local function applyJumpBoost()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.JumpPower = jumpPowerBoost and 200 or settings.jp end
+    end
+end
+
+-- NOCLIP
+local noclip = settings.noclip
+rs.Stepped:Connect(function()
+    if noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
+-- ESP
+local espOn = settings.espOn
+local espObjects = {}
+local function createESP()
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and not espObjects[plr] and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local root = plr.Character.HumanoidRootPart
+            local box = Instance.new("BoxHandleAdornment")
+            box.Size = Vector3.new(4,5,2)
+            box.Color3 = Color3.fromRGB(255,255,255)
+            box.AlwaysOnTop = true
+            box.Adornee = root
+            box.Parent = root
+            local tag = Instance.new("BillboardGui")
+            tag.Size = UDim2.new(0,100,0,30)
+            tag.AlwaysOnTop = true
+            tag.Parent = root
+            local txt = Instance.new("TextLabel")
+            txt.Size = UDim2.new(1,0,1,0)
+            txt.BackgroundTransparency = 1
+            txt.Text = plr.Name
+            txt.TextColor3 = Color3.fromRGB(255,255,255)
+            txt.Font = Enum.Font.GothamBold
+            txt.TextSize = 12
+            txt.Parent = tag
+            espObjects[plr] = {box, tag}
+        end
+    end
+end
+local function clearESP()
+    for _, v in pairs(espObjects) do
+        if v[1] then v[1]:Destroy() end
+        if v[2] then v[2]:Destroy() end
+    end
+    espObjects = {}
+end
+local function toggleESP()
+    espOn = not espOn
+    settings.espOn = espOn
+    saveSettings()
+    if espOn then
+        createESP()
+        game.Players.PlayerAdded:Connect(function(plr) if espOn then createESP() end end)
+        game.Players.PlayerRemoving:Connect(function(plr) if espObjects[plr] then
+            espObjects[plr][1]:Destroy(); espObjects[plr][2]:Destroy(); espObjects[plr]=nil
+        end end)
+        rs.RenderStepped:Connect(function()
+            if espOn then
+                for plr, v in pairs(espObjects) do
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        v[1].Adornee = plr.Character.HumanoidRootPart
+                        v[2].Adornee = plr.Character.HumanoidRootPart
+                    end
+                end
+            end
+        end)
+    else
+        clearESP()
+    end
+end
+
+-- AIMBOT
+local aimbotEnabled = settings.aimbotEnabled
+local function smoothAimbot()
+    if not aimbotEnabled then return end
+    local target = nil
+    local closestDist = math.huge
+    local camera = workspace.CurrentCamera
+    local center = camera.ViewportSize/2
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+            local head = plr.Character.Head
+            local screenPos, onScreen = camera:WorldToScreenPoint(head.Position)
+            if onScreen then
+                local d = (Vector2.new(screenPos.X, screenPos.Y)-center).Magnitude
+                if d < closestDist then
+                    closestDist = d
+                    target = plr
+                end
+            end
+        end
+    end
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        local head = target.Character.Head
+        camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.p, head.Position), 0.2)
+    end
+end
+rs.RenderStepped:Connect(smoothAimbot)
+
+-- CLICK TELEPORT
+local tpEnabled = settings.tpEnabled
+local function teleportToMouse()
+    if not tpEnabled then return end
+    if not (ui:IsKeyDown(Enum.KeyCode.LeftControl) or ui:IsKeyDown(Enum.KeyCode.RightControl)) then return end
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp and mouse.Target then
+        hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0,3,0))
+        task.wait(0.05)
+    end
+end
+mouse.Button1Down:Connect(teleportToMouse)
+
+-- GODMODE
+local god = settings.god
+local function applyGodMode(state)
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if state then
+                hum.MaxHealth = math.huge
+                hum.Health = math.huge
+                hum.BreakJointsOnDeath = false
+            else
+                hum.MaxHealth = 100
+                hum.BreakJointsOnDeath = true
+                hum.Health = 100
+            end
+        end
+    end
+end
+local function toggleGodMode()
+    god = not god
+    settings.god = god
+    saveSettings()
+    applyGodMode(god)
+end
+
+-- INFINITE AMMO
+local infiniteAmmo = settings.infiniteAmmo
+local ammoLoop = false
+local function startAmmoLoop()
+    if ammoLoop then return end
+    ammoLoop = true
+    task.spawn(function()
+        while infiniteAmmo do
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if tool:IsA("Tool") and tool:FindFirstChild("Ammo") then tool.Ammo.Value = 999 end
+            end
+            if player.Character then
+                for _, tool in pairs(player.Character:GetChildren()) do
+                    if tool:IsA("Tool") and tool:FindFirstChild("Ammo") then tool.Ammo.Value = 999 end
+                end
+            end
+            task.wait(0.5)
+        end
+        ammoLoop = false
+    end)
+end
+local function toggleInfiniteAmmo()
+    infiniteAmmo = not infiniteAmmo
+    settings.infiniteAmmo = infiniteAmmo
+    saveSettings()
+    if infiniteAmmo then startAmmoLoop() end
+end
+
+-- FULL BRIGHT
+local bright = settings.bright
+local oldBright, oldAmbient, oldOutdoor
+local function toggleFullBright()
+    bright = not bright
+    settings.bright = bright
+    saveSettings()
+    if bright then
+        oldBright = lighting.Brightness
+        oldAmbient = lighting.Ambient
+        oldOutdoor = lighting.OutdoorAmbient
+        lighting.Brightness = 2
+        lighting.Ambient = Color3.fromRGB(255,255,255)
+        lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+    else
+        lighting.Brightness = oldBright
+        lighting.Ambient = oldAmbient
+        lighting.OutdoorAmbient = oldOutdoor
+    end
+end
+
+-- A LOT OF ME?
+local teleportLoopActive = settings.teleportLoopActive
+local teleportConn = nil
+local startPos = nil
+local function startTeleportLoop()
+    if teleportConn then return end
+    local char = player.Character
+    if not char then player.CharacterAdded:Wait(); char = player.Character end
+    local rootPart = char:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    startPos = rootPart.CFrame.p
+    teleportLoopActive = true
+    settings.teleportLoopActive = true
+    saveSettings()
+    teleportConn = rs.Heartbeat:Connect(function()
+        if not teleportLoopActive then return end
+        local newChar = player.Character
+        if not newChar then return end
+        local newRoot = newChar:FindFirstChild("HumanoidRootPart")
+        if not newRoot then return end
+        local radius = 20
+        local angle = math.random() * math.pi * 2
+        local dist = math.random() * radius
+        local dx = math.cos(angle) * dist
+        local dz = math.sin(angle) * dist
+        local newPos = startPos + Vector3.new(dx, 0, dz)
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        raycastParams.FilterDescendantsInstances = {newChar}
+        local rayResult = workspace:Raycast(newPos + Vector3.new(0,10,0), Vector3.new(0,-50,0), raycastParams)
+        if rayResult then
+            newPos = rayResult.Position + Vector3.new(0,3,0)
+        else
+            newPos = Vector3.new(newPos.X, newRoot.Position.Y, newPos.Z)
+        end
+        newRoot.CFrame = CFrame.new(newPos)
+        task.wait(0.2)
+    end)
+end
+local function stopTeleportLoop()
+    teleportLoopActive = false
+    settings.teleportLoopActive = false
+    saveSettings()
+    if teleportConn then teleportConn:Disconnect(); teleportConn = nil end
+end
+local function toggleTeleportLoop()
+    if teleportLoopActive then stopTeleportLoop() else startTeleportLoop() end
+end
+
+-- ANTI-AFK
+local antiAFKActive = false
+local antiAFKConn = nil
+local function startAntiAFK()
+    if antiAFKConn then return end
+    antiAFKActive = true
+    antiAFKConn = rs.RenderStepped:Connect(function()
+        if not antiAFKActive then return end
+        if tick() % 10 < 0.1 then
+            pcall(function()
+                local cam = workspace.CurrentCamera
+                if cam then
+                    local newCF = cam.CFrame * CFrame.Angles(0, 0.01, 0)
+                    cam.CFrame = newCF
+                end
+                vInput:SendKeyEvent(true, "W", false, game)
+                task.wait(0.05)
+                vInput:SendKeyEvent(false, "W", false, game)
+            end)
+        end
+    end)
+end
+local function stopAntiAFK()
+    antiAFKActive = false
+    if antiAFKConn then antiAFKConn:Disconnect(); antiAFKConn = nil end
+end
+local function toggleAntiAFK()
+    if antiAFKActive then stopAntiAFK() else startAntiAFK() end
+end
+
+-- FREE CAM
+local freecamActive = settings.freecamActive
+local freecamData = nil
+local function startFreecam()
+    if freecamActive then return end
+    freecamActive = true
+    settings.freecamActive = true
+    saveSettings()
+    local originalCF = workspace.CurrentCamera.CFrame
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1,1,1)
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 1
+    part.Parent = workspace
+    workspace.CurrentCamera.CameraSubject = part
+    local spd = 10
+    local fkeys = {W=false,A=false,S=false,D=false,Space=false,Shift=false}
+    local connB = ui.InputBegan:Connect(function(i,g) if g then return end if i.UserInputType==Enum.UserInputType.Keyboard then fkeys[i.KeyCode.Name]=true end end)
+    local connE = ui.InputEnded:Connect(function(i,g) if i.UserInputType==Enum.UserInputType.Keyboard then fkeys[i.KeyCode.Name]=false end end)
+    local connR = rs.RenderStepped:Connect(function()
+        if not freecamActive then return end
+        local move = Vector3.new()
+        if fkeys.W then move = move + workspace.CurrentCamera.CFrame.LookVector end
+        if fkeys.S then move = move - workspace.CurrentCamera.CFrame.LookVector end
+        if fkeys.A then move = move - workspace.CurrentCamera.CFrame.RightVector end
+        if fkeys.D then move = move + workspace.CurrentCamera.CFrame.RightVector end
+        if fkeys.Space then move = move + Vector3.new(0,1,0) end
+        if fkeys.Shift then move = move - Vector3.new(0,1,0) end
+        if move.Magnitude > 0 then move = move.Unit end
+        part.Position = part.Position + move * spd
+        workspace.CurrentCamera.CFrame = CFrame.new(part.Position, part.Position + workspace.CurrentCamera.CFrame.LookVector)
+    end)
+    freecamData = {connB, connE, connR, part, originalCF}
+end
+local function stopFreecam()
+    if not freecamActive then return end
+    if freecamData then
+        freecamData[1]:Disconnect()
+        freecamData[2]:Disconnect()
+        freecamData[3]:Disconnect()
+        if freecamData[4] then freecamData[4]:Destroy() end
+        if freecamData[5] then workspace.CurrentCamera.CFrame = freecamData[5] end
+    end
+    workspace.CurrentCamera.CameraSubject = player.Character
+    freecamActive = false
+    settings.freecamActive = false
+    saveSettings()
+    freecamData = nil
+end
+local function toggleFreecam()
+    if freecamActive then stopFreecam() else startFreecam() end
+end
+
+-- SERVER HOP
+local function serverHop()
+    local success, result = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/LeoKholYt/roblox/main/lk_serverhop.lua")
+    end)
+    if success and result then
+        local func = loadstring(result)
+        if func then
+            local module = func()
+            module:Teleport(game.PlaceId)
+        end
+    end
+end
+
+-- PART ORBIT
+local function partOrbit()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/chesslovers69/Super-ring-parts-v6/refs/heads/main/Bylukaslol"))()
+end
+
+-- ANTI FLING
+local function antiFling()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/sytcal/antifling/main/9999"))()
+end
+
+-- BLOCK PLAYER
+local blockedPlayers = {}
+local function blockPlayer()
+    local closest = nil
+    local minDist = math.huge
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (player.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if d < minDist then
+                minDist = d
+                closest = plr
+            end
+        end
+    end
+    if closest then
+        if blockedPlayers[closest] then
+            blockedPlayers[closest] = nil
+            if closest.Character then
+                for _, part in pairs(closest.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0
+                        part.CanCollide = true
+                    end
+                end
+            end
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "by -Tubers93-", Text = "Разблокирован: " .. closest.Name, Duration = 2})
+        else
+            blockedPlayers[closest] = true
+            if closest.Character then
+                for _, part in pairs(closest.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0.5
+                        part.CanCollide = false
+                    end
+                end
+            end
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "by -Tubers93-", Text = "Заблокирован: " .. closest.Name, Duration = 2})
+        end
+    end
+end
+
+-- SAVE/LOAD POSITION
+local savedPosition = nil
+local function savePosition()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedPosition = char.HumanoidRootPart.CFrame
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "by -Tubers93-", Text = "Позиция сохранена", Duration = 2})
+    end
+end
+local function loadPosition()
+    if not savedPosition then
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "by -Tubers93-", Text = "Нет сохранённой позиции", Duration = 2})
+        return
+    end
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = savedPosition
+    end
+end
+
+-- RESET
+local function resetChar() 
+    if player.Character then
+        player.Character:BreakJoints()
+    end
+end
+
+-- SET WS/JP
+local function setWS(v) 
+    settings.ws = v
+    saveSettings()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = v end
+    end
+end
+
+local function setJP(v) 
+    settings.jp = v
+    saveSettings()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.JumpPower = v end
+    end
+end
+
+local function setFOV(v) 
+    settings.fov = v
+    saveSettings()
+    workspace.CurrentCamera.FieldOfView = v
+end
+
+-- ПРИМЕНЕНИЕ СОХРАНЁННЫХ НАСТРОЕК
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    if settings.flying then startFly() end
+    if settings.noclip then noclip = true end
+    if settings.infJump then infiniteJump = true end
+    if settings.god then toggleGodMode() end
+    if settings.espOn then toggleESP() end
+    if settings.bright then toggleFullBright() end
+    if settings.aimbotEnabled then aimbotEnabled = true end
+    if settings.infiniteAmmo then toggleInfiniteAmmo() end
+    if settings.freecamActive then toggleFreecam() end
+    if settings.teleportLoopActive then startTeleportLoop() end
+    if settings.tpEnabled then tpEnabled = true end
+    
+    hum.WalkSpeed = settings.ws
+    hum.JumpPower = settings.jp
+    workspace.CurrentCamera.FieldOfView = settings.fov
+end)
+
+-- ========== GUI (МАКСИМАЛЬНО БЫСТРЫЕ ГЛЮКИ) ==========
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Tubers93_FastGlitch"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local GUI_WIDTH = 500
+local GUI_HEIGHT = 450
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+if getgenv().Tubers93_position then
+    frame.Position = getgenv().Tubers93_position
+else
+    frame.Position = UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+end
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.05
+frame.BorderSizePixel = 1
+frame.BorderColor3 = Color3.fromRGB(255,255,255)
+frame.ClipsDescendants = true
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- БЫСТРЫЙ ГЛЮК: смещение рамки (каждые 0.5-2 сек)
+task.spawn(function()
+    while frame and frame.Parent do
+        wait(math.random(1, 4) * 0.15)
+        if math.random(1, 2) == 1 then
+            local offsetX = math.random(-6, 6)
+            local offsetY = math.random(-5, 5)
+            frame.Position = frame.Position + UDim2.new(0, offsetX, 0, offsetY)
+            wait(0.02)
+            frame.Position = frame.Position - UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+end)
+
+-- БЫСТРОЕ мерцание фона (каждые 0.3-1 сек)
+task.spawn(function()
+    while frame and frame.Parent do
+        wait(math.random(2, 6) * 0.1)
+        if math.random(1, 3) == 1 then
+            frame.BackgroundTransparency = math.random(20, 40) / 100
+            wait(0.02)
+            frame.BackgroundTransparency = 0.05
+        end
+    end
+end)
+
+-- БЫСТРЫЙ ГЛЮЧ-слой (битые полосы каждые 0.2-1 сек)
+local glitchOverlay = Instance.new("Frame")
+glitchOverlay.Size = UDim2.new(1, 0, 1, 0)
+glitchOverlay.BackgroundColor3 = Color3.fromRGB(255,255,255)
+glitchOverlay.BackgroundTransparency = 0.9
+glitchOverlay.BorderSizePixel = 0
+glitchOverlay.ZIndex = 10
+glitchOverlay.Parent = frame
+
+task.spawn(function()
+    while glitchOverlay and glitchOverlay.Parent do
+        wait(math.random(2, 8) * 0.1)
+        if math.random(1, 2) == 1 then
+            glitchOverlay.BackgroundTransparency = 0.8
+            glitchOverlay.Size = UDim2.new(1, 0, 0, math.random(2, 12))
+            glitchOverlay.Position = UDim2.new(0, 0, 0, math.random(5, 430))
+            wait(0.02)
+            glitchOverlay.BackgroundTransparency = 0.9
+            glitchOverlay.Size = UDim2.new(1, 0, 1, 0)
+            glitchOverlay.Position = UDim2.new(0, 0, 0, 0)
+        end
+    end
+end)
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- БЫСТРАЯ глючная тень
+local shadow = Instance.new("Frame")
+shadow.Size = frame.Size + UDim2.new(0, 12, 0, 12)
+shadow.Position = frame.Position - UDim2.new(0, 6, 0, 6)
+shadow.BackgroundColor3 = Color3.fromRGB(0,0,0)
+shadow.BackgroundTransparency = 0.7
+shadow.BorderSizePixel = 0
+shadow.Parent = screenGui
+
+task.spawn(function()
+    while shadow and shadow.Parent do
+        wait(math.random(1, 4) * 0.15)
+        if math.random(1, 2) == 1 then
+            shadow.Position = shadow.Position + UDim2.new(0, math.random(-4,4), 0, math.random(-4,4))
+            wait(0.02)
+            shadow.Position = frame.Position - UDim2.new(0, 6, 0, 6)
+        end
+        if math.random(1, 5) == 1 then
+            shadow.BackgroundTransparency = math.random(50, 85) / 100
+            wait(0.02)
+            shadow.BackgroundTransparency = 0.7
+        end
+    end
+end)
+
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+    shadow.Position = frame.Position - UDim2.new(0, 6, 0, 6)
+    getgenv().Tubers93_position = frame.Position
+end)
+
+-- ========== ЗАГОЛОВОК С БЫСТРЫМИ ГЛЮКАМИ ТЕКСТА ==========
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,32)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundColor3 = Color3.fromRGB(10,10,10)
+title.BackgroundTransparency = 0
+title.Text = "by -Tubers93-"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.ZIndex = 2
+title.Parent = frame
+
+local glitchChars = {"#","$","%","&","@","!","?","/","\\","|","~","`","�","◢","◣","⬛","▒","▓","█"}
+-- БЫСТРЫЙ глюк текста заголовка (каждые 0.2-1.5 сек)
+task.spawn(function()
+    local original = "by -Tubers93-"
+    while title and title.Parent do
+        wait(math.random(2, 8) * 0.1)
+        if math.random(1, 3) == 1 then
+            local glitched = ""
+            for i = 1, #original do
+                if math.random(1, 6) == 1 then
+                    glitched = glitched .. glitchChars[math.random(#glitchChars)]
+                else
+                    glitched = glitched .. original:sub(i,i)
+                end
+            end
+            title.Text = glitched
+            wait(0.04)
+            title.Text = original
+        end
+        if math.random(1, 6) == 1 then
+            title.TextSize = math.random(12, 22)
+            wait(0.03)
+            title.TextSize = 16
+        end
+        if math.random(1, 8) == 1 then
+            title.TextColor3 = Color3.fromRGB(math.random(200,255), math.random(200,255), math.random(200,255))
+            wait(0.03)
+            title.TextColor3 = Color3.fromRGB(255,255,255)
+        end
+    end
+end)
+
+local toggleGuiBtn = Instance.new("TextButton")
+toggleGuiBtn.Size = UDim2.new(0, 26, 0, 26)
+toggleGuiBtn.Position = UDim2.new(0, 8, 0, 3)
+toggleGuiBtn.Text = "▼"
+toggleGuiBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleGuiBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+toggleGuiBtn.BackgroundTransparency = 0.8
+toggleGuiBtn.Font = Enum.Font.GothamBold
+toggleGuiBtn.TextSize = 14
+toggleGuiBtn.BorderSizePixel = 0
+toggleGuiBtn.ZIndex = 2
+toggleGuiBtn.Parent = frame
+local togCorner = Instance.new("UICorner")
+togCorner.CornerRadius = UDim.new(0,6)
+togCorner.Parent = toggleGuiBtn
+
+local container = Instance.new("Frame")
+container.Size = UDim2.new(1, -12, 1, -40)
+container.Position = UDim2.new(0, 6, 0, 38)
+container.BackgroundTransparency = 1
+container.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 4)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = container
+
+local rows = {}
+for i = 1, 6 do
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 65)
+    row.BackgroundTransparency = 1
+    row.Parent = container
+    rows[i] = row
+end
+
+-- ФУНКЦИЯ СОЗДАНИЯ КНОПКИ С БЫСТРЫМИ ГЛЮКАМИ ТЕКСТА
+function createButton(parent, text, isToggle, callback, state)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 115, 0, 55)
+    btn.Text = text
+    btn.BackgroundColor3 = (isToggle and state) and Color3.fromRGB(80,80,80) or Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
+    
+    -- БЫСТРЫЙ глюк текста кнопки (каждые 0.3-2 сек)
+    local originalText = text
+    task.spawn(function()
+        while btn and btn.Parent do
+            wait(math.random(3, 12) * 0.1)
+            if math.random(1, 4) == 1 then
+                local glitched = ""
+                for i = 1, #originalText do
+                    if math.random(1, 8) == 1 then
+                        glitched = glitched .. glitchChars[math.random(#glitchChars)]
+                    else
+                        glitched = glitched .. originalText:sub(i,i)
+                    end
+                end
+                btn.Text = glitched
+                wait(0.04)
+                btn.Text = originalText
+            end
+            if math.random(1, 10) == 1 then
+                btn.TextSize = math.random(9, 18)
+                wait(0.03)
+                btn.TextSize = 13
+            end
+            if math.random(1, 12) == 1 then
+                btn.TextColor3 = Color3.fromRGB(math.random(200,255), math.random(200,255), math.random(200,255))
+                wait(0.03)
+                btn.TextColor3 = Color3.fromRGB(255,255,255)
+            end
+        end
+    end)
+    
+    -- БЫСТРЫЙ глюк: кнопки дёргаются чаще
+    task.spawn(function()
+        while btn and btn.Parent do
+            wait(math.random(2, 6) * 0.2)
+            if math.random(1, 4) == 1 then
+                local oldPos = btn.Position
+                btn.Position = btn.Position + UDim2.new(0, math.random(-5,5), 0, math.random(-4,4))
+                wait(0.02)
+                btn.Position = oldPos
+            end
+            if math.random(1, 8) == 1 then
+                btn.BackgroundColor3 = Color3.fromRGB(math.random(30, 120), math.random(30, 120), math.random(30, 120))
+                wait(0.02)
+                btn.BackgroundColor3 = (isToggle and state) and Color3.fromRGB(80,80,80) or Color3.fromRGB(40,40,40)
+            end
+        end
+    end)
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = btn
+    if isToggle then
+        btn.MouseButton1Click:Connect(function()
+            callback()
+            btn.BackgroundColor3 = (state and Color3.fromRGB(80,80,80) or Color3.fromRGB(40,40,40))
+        end)
+    else
+        btn.MouseButton1Click:Connect(callback)
+    end
+    return btn
+end
+
+-- ========== ВСЕ КНОПКИ (24 ШТУКИ) ==========
+createButton(rows[1], "FLY", true, function() if not flying then startFly() else stopFly() end end, flying)
+createButton(rows[1], "NOCLIP", true, function() noclip = not noclip; settings.noclip = noclip; saveSettings() end, noclip)
+createButton(rows[1], "INF JUMP", true, function() infiniteJump = not infiniteJump; settings.infJump = infiniteJump; saveSettings() end, infiniteJump)
+createButton(rows[1], "GOD MODE", true, function() toggleGodMode() end, god)
+
+createButton(rows[2], "ESP", true, function() toggleESP() end, espOn)
+createButton(rows[2], "AIMBOT", true, function() aimbotEnabled = not aimbotEnabled; settings.aimbotEnabled = aimbotEnabled; saveSettings() end, aimbotEnabled)
+createButton(rows[2], "TELEPORT", true, function() tpEnabled = not tpEnabled; settings.tpEnabled = tpEnabled; saveSettings() end, tpEnabled)
+createButton(rows[2], "INF AMMO", true, function() toggleInfiniteAmmo() end, infiniteAmmo)
+
+createButton(rows[3], "FULL BRIGHT", true, function() toggleFullBright() end, bright)
+createButton(rows[3], "A lot of me?", true, function() toggleTeleportLoop() end, teleportLoopActive)
+createButton(rows[3], "SPEED (70)", true, function() speedHackActive = not speedHackActive; applySpeedHack() end, speedHackActive)
+createButton(rows[3], "JUMP (200)", true, function() jumpPowerBoost = not jumpPowerBoost; applyJumpBoost() end, jumpPowerBoost)
+
+createButton(rows[4], "c00lclan", false, function() loadstring(game:HttpGet("https://raw.githubusercontent.com/cfsmi2/c00lguiv1/refs/heads/main/Main.lua"))() end, nil)
+createButton(rows[4], "Yunus HUB", false, function() loadstring(game:HttpGet("https://raw.githubusercontent.com/yunus154524/YunusLo1545-HUB/refs/heads/main/YunusLo1545%20HUB"))() end, nil)
+createButton(rows[4], "SpeedHUB", false, function() loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua"))() end, nil)
+createButton(rows[4], "ANTI FLING", false, antiFling, nil)
+
+createButton(rows[5], "ANTI-AFK", true, function() toggleAntiAFK() end, antiAFKActive)
+createButton(rows[5], "BLOCK PLAYER", false, blockPlayer, nil)
+createButton(rows[5], "PART ORBIT", false, partOrbit, nil)
+createButton(rows[5], "ЗАКРЫТЬ GUI", false, function() screenGui:Destroy() end, nil)
+
+createButton(rows[6], "SERVER HOP", false, serverHop, nil)
+createButton(rows[6], "FREE CAM", true, function() toggleFreecam() end, freecamActive)
+createButton(rows[6], "SAVE POS", false, savePosition, nil)
+createButton(rows[6], "LOAD POS", false, loadPosition, nil)
+
+-- Выравнивание кнопок
+for i = 1, 6 do
+    local children = {}
+    for _, child in pairs(rows[i]:GetChildren()) do
+        if child:IsA("TextButton") and child.Visible then
+            table.insert(children, child)
+        end
+    end
+    local x = 6
+    for _, btn in pairs(children) do
+        btn.Position = UDim2.new(0, x, 0, 5)
+        x = x + btn.Size.X.Offset + 3
+    end
+end
+
+-- Сворачивание
+local guiVis = true
+toggleGuiBtn.MouseButton1Click:Connect(function()
+    guiVis = not guiVis
+    container.Visible = guiVis
+    toggleGuiBtn.Text = guiVis and "▼" or "▲"
+    if guiVis then
+        frame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+        shadow.Size = frame.Size + UDim2.new(0, 12, 0, 12)
+        if getgenv().Tubers93_position then
+            frame.Position = getgenv().Tubers93_position
+        else
+            frame.Position = UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+        end
+        shadow.Position = frame.Position - UDim2.new(0, 6, 0, 6)
+    else
+        frame.Size = UDim2.new(0, GUI_WIDTH, 0, 32)
+        shadow.Size = UDim2.new(0, GUI_WIDTH+12, 0, 44)
+    end
+end)
+
+-- БЫСТРАЯ глючная анимация появления
+frame.BackgroundTransparency = 1
+frame.Size = UDim2.new(0,0,0,0)
+local function finalAppear()
+    frame.Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT)
+    shadow.Size = frame.Size + UDim2.new(0, 12, 0, 12)
+    if getgenv().Tubers93_position then
+        frame.Position = getgenv().Tubers93_position
+    else
+        frame.Position = UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+    end
+    local appearTween = tween:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, GUI_WIDTH, 0, GUI_HEIGHT),
+        BackgroundTransparency = 0.05
+    })
+    local shadowTween = tween:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+        Size = frame.Size + UDim2.new(0,12,0,12)
+    })
+    appearTween:Play()
+    shadowTween:Play()
+    
+    -- БЫСТРЫЕ рывки во время анимации
+    wait(0.1)
+    for _ = 1, 6 do
+        frame.Position = frame.Position + UDim2.new(0, math.random(-8,8), 0, math.random(-6,6))
+        wait(0.01)
+        frame.Position = getgenv().Tubers93_position or UDim2.new(0.5, -GUI_WIDTH/2, 0.5, -GUI_HEIGHT/2)
+    end
+end
+finalAppear()
+
+print("by -Tubers93- (FAST GLITCH MODE) загружен. Глюки очень частые.")
